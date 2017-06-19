@@ -1,7 +1,7 @@
-twilio:
-  accountSid: TWILIO_ACCOUNT_SID
-  authToken: TWILIO_TOKEN
-locationName: TWILIO_LOCATION_NAME
+zang:
+  accountSid: ZANG_ACCOUNT_SID
+  authToken: ZANG_TOKEN
+locationName: ZANG_LOCATION_NAME
 openTone: BB_TONE
-phoneNumber: TWILIO_PHONE_NUMBER
+phoneNumber: ZANG_PHONE_NUMBER
 dbPath: BB_DB_PATH

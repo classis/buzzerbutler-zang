@@ -1,5 +1,5 @@
 port: 3000
-twilio:
+zang:
   accountSid: sidthing
   authToken: blahblah
 locationName: 'super duper 7 a'

@@ -2,7 +2,7 @@
   "name": "buzzerbutler",
   "version": "1.0.0",
   "description": "Project to create an automated butler for apartment buzzing systems to allow multiple phone numbers to be called or passcodes",
-  "main": "index.js",
+  "main": "server/server.js",
   "scripts": {
     "start": "nodemon -w server/ -w node_modules/ -w config/ --exec node -r babel-register server/server.js",
     "lint": "eslint server --ext js,jsx --fix",
@@ -23,7 +23,9 @@
   "dependencies": {
     "body-parser": "^1.17.2",
     "config": "^1.26.1",
+    "cors": "^2.8.3",
     "express": "^4.15.3",
+    "mongoose": "^4.10.7",
     "nodemon": "^1.11.0",
     "tingodb": "^0.5.1",
     "twilio": "^3.3.0",

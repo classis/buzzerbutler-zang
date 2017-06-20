@@ -22,7 +22,7 @@ pipeline:
       event: [ push ]
 
   snapshot:
-    image: classis/drone-netapp-snapshot
+    image: peloton/drone-netapp-snapshot
     url: https://34.212.49.198:8443/api/2.0/ontap/snapshots
     user_name: admin
     user_password: Password@123

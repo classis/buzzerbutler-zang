@@ -7,19 +7,19 @@ Project to create an automated butler for apartment buzzing systems to allow mul
 1. npm install
 2. modify the values in config/default.yml
 3. npm start
-4. make sure in twilio the all calls come in for the phone number go to {host}/twilio
+4. make sure in Zang the all calls come in for the phone number go to {host}/zang
 
 ### From Docker
 1. docker run classis/buzzerbutler
 2. set the following env variables
 
-TWILIO_ACCOUNT_SID - id from twilio
+ZANG_ACCOUNT_SID - id from zang
 
-TWILIO_TOKEN - token from twilio
+ZANG_TOKEN - token from Zang
 
-TWILIO_LOCATION_NAME - name that gets stated when called
+ZANG_LOCATION_NAME - name that gets stated when called
 
-TWILIO_PHONE_NUMBER - twilio number that called id uses
+ZANG_PHONE_NUMBER - Zang number that called id uses
 
 BB_DB_PATH - path to store state
 

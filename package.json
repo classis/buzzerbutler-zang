@@ -25,6 +25,7 @@
     "config": "^1.26.1",
     "cors": "^2.8.3",
     "express": "^4.15.3",
+    "mongodb": "^2.2.29",
     "mongoose": "^4.10.7",
     "nodemon": "^1.11.0",
     "tingodb": "^0.5.1",

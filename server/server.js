@@ -1,211 +1,214 @@
-const bodyParser = require('body-parser');
-const config = require('config');
-const cors = require('cors');
-const express = require('express');
-const zang = require('zang-node');
+import config from 'config';
+import express from 'express';
+import zang from 'zang-node';
+import tingodb from 'tingodb';
+import bodyParser from 'body-parser';
 
-const butler = require('./butler');
+const engine = tingodb();
+const dbPath = config.get('dbPath');
+// const db = new engine.Db(dbPath, {});
+var MongoClient = require('mongodb').MongoClient;
 
-const mongoose = require('mongoose');
+const dbhost = config.get('database.host');
+const dbport = config.get('database.port');
+const dbname = config.get('database.name');
 
-const dbHost = config.get('database.host');
-const dbPort = config.get('database.port');
-const dbName = config.get('database.name');
+var db;
+// Connect to the db
 
+
+const port = config.get('port');
 const zangSid = config.get('zang.accountSid');
 const zangToken = config.get('zang.authToken');
-const phoneNumber = config.get('zang.phoneNumber');
-console.log(zangSid, zangToken, phoneNumber);
-
 const locationName = config.get('locationName');
 const openTone = config.get('openTone');
-const port = config.get('port');
+const phoneNumber = config.get('phoneNumber');
+let accessCodesCol ;
+let usersCol;
+let users = [];
+let accessCodes = [];
+/* eslint-disable no-unused-vars */
+const app = express();
 
-const connectors = new zang.Connectors({
+const callsConnector = new zang.CallsConnector({
   accountSid: zangSid,
   authToken: zangToken
 });
 
-const ix = zang.inboundXml;
-
-/* eslint-disable no-unused-vars */
-
-const app = express();
-
 // Parse incoming POST params with Express middleware
-app.use(bodyParser.urlencoded({extended: false}));
+app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-app.use(cors());
-// allow CORS
-app.all('*', function (req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-type,Accept,X-Access-Token,X-Key');
-  if (req.method == 'OPTIONS') {
-    res.status(200).end();
-  } else {
-    next();
-  }
-});
+const generateIntro = () => {
+  const options = users.map(user => `to ${user.verb} ${user.name} press ${user.code}`).join();
+  const whatToSay = `Welcome to ${locationName} ${options}`;
+  console.log(whatToSay);
+  return whatToSay;
+};
 
-app.use(function (req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-  next();
-});
-
-// TODO: change host to be non-fixed (and user-specified).
-const FIXED_HOST_EMAIL = 'chrisdistrict@gmail.com';
-
-const DB_STRING = `${dbHost}:${dbPort}/${dbName}`;
-console.log('dbString: ' + DB_STRING);
-
-mongoose.connect(DB_STRING);
-
-const Schema = mongoose.Schema;
-
-let User = mongoose.model('User', new Schema({
-  hostEmail: String,
-  name: String,
-  phone: String,
-  code: Number,
-  address: String,
-  createdAt: {type: Date, default: Date.now}
-}));
-
-let Entry = mongoose.model('Entry', new Schema({
-  hostEmail: String,
-  phone: String,
-  authorizer: String,
-  createdAt: {type: Date, default: Date.now}
-}));
-
-app.post('/zang', (req, res) => {
+app.put('/api/users', (req, res) => {
   console.log(req.body);
-  User.find({host: FIXED_HOST_EMAIL}).exec(function (err, res) {
-    const response = ix.response({
-      content: [ix.gather({
-        content: [ix.say({
-          text: butler.generateIntro()
-        })],
-        action: '/zang/getDigits', numdigits: 1
-      })],
-    });
-    butler.returnXML(response, res)
-
+  usersCol.remove({});
+  users = req.body;
+  usersCol.insert(req.body, (err, result) => {
+    if (err) res.send(err);
+    res.send(result);
   });
+});
 
+app.get('/api/users', (req, res) => {
+  usersCol.find({}).toArray((err, result) => {
+    if (err) res.send(err);
+    res.send(result);
+  });
+});
+
+app.put('/api/accesscodes', (req, res) => {
+  accessCodesCol.remove({});
+  accessCodes = req.body;
+  accessCodesCol.insert(req.body, (err, result) => {
+    if (err) res.send(err);
+    res.send(result);
+  });
+});
+
+app.get('/api/accesscodes', (req, res) => {
+  accessCodesCol.find({}).toArray((err, result) => {
+    if (err) res.send(err);
+    res.send(result);
+  });
+});
+
+
+// Passcode check
+app.post('/zang/gatheraccesscode', (req, res) => {
+  var ix = zang.inboundXml;
+  var enums = zang.enums;
+
+  var xmlDefinition;
+  // const twiml = new VoiceResponse();
+  if (req.body.Digits) {
+    console.log(req.body.Digits);
+    const exists = accessCodes.filter(object => (object.value === req.body.Digits));
+    if (exists.length !== 0) {
+      xmlDefinition = ix.response({ content: [ ix.say({
+        text: 'Correct'
+      })]});
+
+    } else {
+      xmlDefinition = ix.response({ content: [ ix.say({
+        text: 'That is an incorrect accesscode'
+      })]});
+    }
+  } else {
+  }
+  res.type('text/xml');
+  console.log(xmlDefinition);
+  ix.build(xmlDefinition).then(function(xml){
+    console.log(xml);
+    res.send(xml);
+  });
+  // res.send(twiml.toString());
 });
 
 // First choice menu
-app.post('/zang/getDigits', (req, res) => {
-  const code = req.body.Digits || '';
-  if (code === '') {
-    let noGo = say('Sorry, I didn\'t get the code you entered');
-    return;
+app.post('/zang/gatherchoice', (req, res) => {
+  var ix = zang.inboundXml;
+  var enums = zang.enums;
+
+  var xmlDefinition;
+  console.log(req.body);
+  // const twiml = new VoiceResponse();
+  if (req.body.Digits) {
+    console.log(req.body.Digits);
+    // If the user entered digits, process their request
+    const selected = users.filter(object => (object.code === req.body.Digits))
+      .map((object) => {
+        if (object.verb === 'reach') {
+
+          xmlDefinition = ix.response({ content: [
+            ix.dial({ callerId: phoneNumber, content: [ object.phone
+            ]})
+          ]});
+
+          // twiml.dial({ callerId: phoneNumber }, object.phone);
+          // console.log(twiml.toString());
+          // twiml.say(`${object.name} didnt answer`);
+        } else if (object.verb === 'use') {
+          // const gather = twiml.gather({ numDigits: 4, action: '/zang/gatheraccesscode' });
+          xmlDefinition = ix.response({content: [
+            ix.gather({ action: '/zang/gatheraccesscode', numDigits: 4, content:[     ix.say({
+              text: 'Enter Passcode'
+            })] })
+          ]});
+          // gather.say('Enter passcode');
+        }
+        return object;
+      });
+    if (selected.length === 0) {
+      twiml.say('Sorry, I don\'t understand that choice.');
+    }
   }
-
-  console.log('code entered: ' + code);
-
-  // If the user entered digits, process their request.
-  // TODO: search for the user that also corresponds to the particular host of the request.
-  const selected = User.findOne({hostEmail: FIXED_HOST_EMAIL, code: code}).exec((err, person) => {
-    if (err) {
-      console.log('error: ' + err);
-      let noGo = say('Sorry, the choice ' + code + ' does not map to a user.');
-      return;
-    }
-
-    const phoneNumber = person.phone || '';
-    if (phoneNumber === '') {
-      console.log('error: no phone for user');
-      let noGo = say('Sorry, ' + person.name + ' does not have their phone number configured');
-      return;
-    }
-
-    const dialHost = ix.response({
-      content: [ix.dial(person.phone)]
-    });
-
-    entry = new Entry({hostEmail: FIXED_HOST_EMAIL, authorizer: person.name, phone: person.phone});
-
-    entry.save((err, res) => {
-      console.log(err, res)
-    });
-
-    butler.returnXML(dialHost, res)
-  })
-});
-
-
-
-// Insert an entry attempt by a particular user.
-app.post('/api/addEntry', (req, res) => {
-  const entry = req.body;
-  Entry.insert(entry, (err, result) => {
-    if (err) res.json(err);
-    res.json(result);
+  res.type('text/xml');
+  console.log(xmlDefinition);
+  ix.build(xmlDefinition).then(function(xml){
+    console.log(xml);
+    res.send(xml);
   });
 });
 
-app.post('/api/addUser', (req, res) => {
-  const user = new User(req.body || '');
-
-  user.save((err, result) => {
-    if (err) res.json(err);
-    res.json(result);
-  });
+app.get('/', (req, res) => {
+  res.send('Hello World!');
 });
 
-app.post('/api/removeUser', (req, res) => {
-  const hostEmail = req.body.hostEmail || '';
-  const phone = req.body.phone || '';
-  User.remove({hostEmail: hostEmail, phone: phone}).exec((err, result) => {
-    if (err) res.json(err);
-    res.json(result);
+
+// Starting point
+app.post('/zang', (req, res) => {
+
+  var ix = zang.inboundXml;
+  var enums = zang.enums;
+
+  var xmlDefinition = ix.response({content: [
+    ix.gather({ action: '/zang/gatherchoice', numDigits: 1, content:[     ix.say({
+      language: enums.Language.EN,
+      loop: 3,
+      text: generateIntro(),
+      voice: enums.Voice.FEMALE
+    })] })
+
+  ]});
+
+  ix.build(xmlDefinition).then(function(xml){
+    console.log(xml);
+    res.send(xml);
+  }).catch(function(err){
+    console.log('The generated XML is not valid!', err);
   });
+
+
+  // const twiml = new VoiceResponse();
+  // const gather = twiml.gather({ numDigits: 1, action: '/twilio/gatherchoice' });
+  // gather.say(generateIntro());
+  // twiml.redirect('/twilio');
+  // res.type('text/xml');
+  // res.send(twiml.toString());
 });
 
-app.post('/api/getAllUsers', (req, res) => {
-  User.find().exec((err, result) => {
-    if (err) res.json(err);
-    res.json(result);
-  });
-});
-
-app.post('/api/getUsersForHost', (req, res) => {
-  const hostEmail = req.body.hostEmail || '';
-  User.find({hostEmail: hostEmail}).exec((err, result) => {
-    if (err) res.json(err);
-    res.json(result);
-  });
-});
-
-// Test API route
-app.post('/hello', (req, res) => {
-  res.json('Hello World!');
-});
-
-function initTables(cb) {
-  const user = new User({
-    "hostEmail": "chrisdistrict@gmail.com",
-    "name": "Chris",
-    "phone": "5109266842",
-    "code": 1,
-    "address": "fake address"
-  });
-  user.save(cb);
-}
-// ** Start the server ** //
 
 app.listen(port, () => {
-  User.remove().exec((error, result) => {
-    initTables(function (err, res) {
-      if (err) console.log('err: ' + err);
-      console.log('init tables.');
-    });
-    console.log(`Listening on port ${port}`);
+  MongoClient.connect(`mongodb://${dbhost}:${dbport}/${dbname}`, function(err, db) {
+    if(!err) {
+      console.log("We are connected");
+      accessCodesCol = db.collection('access_codes');
+      usersCol = db.collection('users');
+      accessCodesCol.find({}).toArray((err, result) => {
+        accessCodes = result;
+      });
+      usersCol.find({}).toArray((err, result) => {
+        users = result;
+      });
+    }
   });
 
+  console.log(`Listening on port ${port}`);
 });

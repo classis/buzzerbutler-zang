@@ -122,8 +122,9 @@ app.post('/api/addEntry', (req, res) => {
 });
 
 app.post('/api/addUser', (req, res) => {
-  const user = req.body || '';
-  Users.insert(user).exec((err, result) => {
+  const user = new User(req.body || '');
+
+  user.save((err, result) => {
     if (err) res.send(err);
     res.send(result);
   });

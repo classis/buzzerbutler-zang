@@ -1,19 +1,21 @@
-import bodyParser from 'body-parser';
-import config from 'config';
-import express from 'express';
-import tingodb from 'tingodb';
-import zang from 'zang-node';
+const bodyParser = require('body-parser');
+const config = require('config');
+const cors = require('cors');
+const express = require('express');
+const zang = require('zang-node');
 
-// const db = new engine.Db(dbPath, {});
-// const dbPath = config.get('dbPath');
-// const engine = tingodb();
+const butler = require('./butler');
 
-// const accessCodesCol = db.collection('access_codes');
+const mongoose = require('mongoose');
+
+const dbHost = config.get('database.host');
+const dbPort = config.get('database.port');
+const dbName = config.get('database.name');
+
 const locationName = config.get('locationName');
 const openTone = config.get('openTone');
 const phoneNumber = config.get('phoneNumber');
 const port = config.get('port');
-// const usersCol = db.collection('users');
 
 const zangSid = config.get('zang.accountSid');
 const zangToken = config.get('zang.authToken');
@@ -28,225 +30,120 @@ const connectors = new zang.Connectors({
 
 const ix = zang.inboundXml;
 
-let users = [];
-let accessCodes = [];
 /* eslint-disable no-unused-vars */
-
 
 const app = express();
 
 // Parse incoming POST params with Express middleware
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 
+app.use(cors());
 
-const generateIntro = () => {
-  // const options = users.map(user => `to ${user.verb} ${user.name} press ${user.code}`).join();
-  // const whatToSay = `Welcome to ${locationName} ${options}`;
-  const whatToSay = 'hello, welcome';
-  console.log(whatToSay);
-  return whatToSay;
-};
+// TODO: change host to be non-fixed (and user-specified).
+const FIXED_HOST_EMAIL = 'chrisdistrict@gmail.com';
 
-const returnXML = (payload, res) => {
-  res.type('text/xml');
-  ix.build(payload).then(xml => {
-    console.log(xml)
-      res.send(xml)
-  });
-}
+mongoose.connect(`${dbHost}:${dbPort}/${dbName}`);
 
-const say = (text) => {ix.response({
-  content: [ix.say({
-    text: text
-    })]
-  });
-};
+const Users = mongoose.model('Users',{
+  hostEmail: String,
+  name: String,
+  phone: String,
+  code: Number
+});
+
+const Entries = mongoose.model('Entries',{
+  hostEmail: String,
+  name: String,
+  phone: String,
+  code: Number,
+  created: {type: Date, default: Date.now}
+});
 
 app.post('/zang', (req, res) => {
-  // const twiml = new VoiceResponse();
-  console.log(req.body)
-
+  console.log(req.body);
+  Users.find({host: FIXED_HOST_EMAIL}).exec(function (err, res) {
     const response = ix.response({
-      content: [ ix.gather({ content: [ix.say({
-          text: generateIntro()
+      content: [ix.gather({
+        content: [ix.say({
+          text: butler.generateIntro()
         })],
-          action: '/zang/gatherchoice', numDigits: 1
-        })],
+        action: '/zang/gatherchoice', numdigits: 1
+      })],
     });
+    butler.returnXML(response, res)
 
-  res.type('text/xml');
-
-  returnXML(response, res)
-
-  // ix.build(response).then(xml => {
-  //   console.log(xml)
-  //   res.send(xml)
-  // });
+  });
 
 });
 
 // First choice menu
 app.post('/zang/gatherchoice', (req, res) => {
-  console.log(req.body);
-  if (req.body.Digits) {
-    console.log(req.body.Digits);
-
-    // If the user entered digits, process their request
-    const selected = users.filter(object => (object.code === req.body.Digits))
-      .map((object) => {
-        if (object.verb === 'reach') {
-
-          const dialHost = ix.response({ content: [
-            callerId: phoneNumber,
-            ix.dial(object.phone)
-          ]});
-
-
-          res.type('text/xml');
-          ix.build(dialhost).then(xml => {
-            console.log(xml)
-            res.send(xml)
-          });
-
-          returnXML(dialHost, res)
-
-        } else if (object.verb === 'use') {
-
-          const gather = ix.response({
-            content: [ ix.gather({ content: [ix.say({
-              text: "Enter passcode"
-            })],
-              action: '/twilio/gatheraccesscode', numDigits: 4
-            })],
-          });
-
-          returnXML(gather, res)
-        }
-
-        return object;
-      });
-    if (selected.length === 0) {
-      let noGo = say('Sorry, I don\'t understand that choice.' });
-    }
-  } else {
-    twiml.redirect('/zang');
+  const code = req.body.digits || '';
+  if (code === '') {
+    let noGo = say('Sorry, I didn\'t get the code you entered');
+    return;
   }
-  res.type('text/xml');
-  res.send(twiml.toString());
-});
 
+  console.log('code entered: ' + code);
 
-app.put('/api/users', (req, res) => {
-  console.log(req.body);
-  usersCol.remove({});
-  users = req.body;
-  usersCol.insert(req.body, (err, result) => {
-    if (err) res.send(err);
-    res.send(result);
-  });
-});
-
-app.get('/api/users', (req, res) => {
-  usersCol.find({}).toArray((err, result) => {
-    if (err) res.send(err);
-    res.send(result);
-  });
-});
-
-app.put('/api/accesscodes', (req, res) => {
-  accessCodesCol.remove({});
-  accessCodes = req.body;
-  accessCodesCol.insert(req.body, (err, result) => {
-    if (err) res.send(err);
-    res.send(result);
-  });
-});
-
-app.get('/api/accesscodes', (req, res) => {
-  accessCodesCol.find({}).toArray((err, result) => {
-    if (err) res.send(err);
-    res.send(result);
-  });
-});
-
-// TBD
-// Passcode check
-app.post('/twilio/gatheraccesscode', (req, res) => {
-
-  //TBD
-  const twiml = new VoiceResponse();
-
-  if (req.body.Digits) {
-    console.log(req.body.Digits);
-    const exists = accessCodes.filter(object => (object.value === req.body.Digits));
-    if (exists.length !== 0) {
-
-      // TBD
-      twiml.say('Correct');
-      twiml.play({ digits: openTone });
-
-    } else {
-      twiml.say('That is an incorrect accesscode');
+  // If the user entered digits, process their request.
+  // TODO: search for the user that also corresponds to the particular host of the request.
+  const selected = Users.findOne({hostEmail: FIXED_HOST_EMAIL, code: code}, function (err, person) {
+    if (err) {
+      console.log('error: ' + err);
+      let noGo = say('Sorry, the choice ' + code + ' does not map to a user.');
+      return;
     }
-  } else {
-    // TBD
-    twiml.redirect('/twilio');
 
+    const phoneNumber = person.phone || '';
+    if (phoneNumber === '') {
+      console.log('error: no phone for user');
+      let noGo = say('Sorry, ' + person.name + ' does not have their phone number configured');
+      return;
+    }
 
-  }
-  res.type('text/xml');
-  res.send(twiml.toString());
+    const dialHost = ix.response({
+      content: [ix.dial(person.phone)]
+    });
+
+    butler.returnXML(dialHost, res)
+
+  });
 });
 
-// app.post('/twilio/gatherchoice', (req, res) => {
-//   const twiml = new VoiceResponse();
-//   if (req.body.Digits) {
-//     console.log(req.body.Digits);
-//     // If the user entered digits, process their request
-//     const selected = users.filter(object => (object.code === req.body.Digits))
-//       .map((object) => {
-//         if (object.verb === 'reach') {
-//           twiml.dial({ callerId: phoneNumber }, object.phone);
-//           console.log(twiml.toString());
-//           twiml.say(`${object.name} didnt answer`);
-//         } else if (object.verb === 'use') {
-//           const gather = twiml.gather({ numDigits: 4, action: '/twilio/gatheraccesscode' });
-//           gather.say('Enter passcode');
-//         }
-//         return object;
-//       });
-//     if (selected.length === 0) {
-//       twiml.say({text: 'Sorry, I don\'t understand that choice.' });
-//     }
-//   } else {
-//     twiml.redirect('/twilio');
-//   }
-//   res.type('text/xml');
-//   res.send(twiml.toString());
-// });
+// Insert an entry attempt by a particular user.
+app.post('/api/addEntry', (req, res) => {
+  const entry = req.body;
+  Entries.insert(entry, (err, result) => {
+    if (err) res.send(err);
+    res.send(result);
+  });
+});
 
-app.get('/', (req, res) => {
+app.post('/api/addUser', (req, res) => {
+  const user = req.body || '';
+  Users.insert(user).exec((err, result) => {
+    if (err) res.send(err);
+    res.send(result);
+  });
+});
+
+app.post('/api/getUsers', (req, res) => {
+  const hostEmail = req.body.hostEmail || '';
+  Users.find({email: hostEmail}, (err, result) => {
+    if (err) res.send(err);
+    res.send(result);
+  });
+});
+
+// Test API route
+app.get('/hello', (req, res) => {
   res.send('Hello World!');
 });
 
-
-// app.post('/twilio', (req, res) => {
-//   const twiml = new VoiceResponse();
-//   const gather = twiml.gather({ numDigits: 1, action: '/twilio/gatherchoice' });
-//   gather.say(generateIntro());
-//   twiml.redirect('/twilio');
-//   res.type('text/xml');
-//   res.send(twiml.toString());
-// });
-
+// ** Start the server ** //
 
 app.listen(port, () => {
-  // accessCodesCol.find({}).toArray((err, result) => {
-    // accessCodes = result;
-  // });
-  // usersCol.find({}).toArray((err, result) => {
-  //   users = result;
-  // });
-  // console.log(`Listening on port ${port}`);
+  console.log(`Listening on port ${port}`);
 });

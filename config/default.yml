@@ -1,8 +1,11 @@
-port: 3000
+port: 9006
 zang:
   accountSid: sidthing
   authToken: blahblah
 locationName: 'super duper 7 a'
-dbPath: './storage'
+database:
+  host: mongo://localhost
+  port: 27017
+  name: butler
 openTone: 9
 phoneNumber: '+5555555555'

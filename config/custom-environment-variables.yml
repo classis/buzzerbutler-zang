@@ -4,4 +4,7 @@ zang:
 locationName: ZANG_LOCATION_NAME
 openTone: BB_TONE
 phoneNumber: ZANG_PHONE_NUMBER
-dbPath: BB_DB_PATH
+database:
+  host: BB_DB_HOST
+  port: BB_DB_PORT
+  name: BB_DB_NAME

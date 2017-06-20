@@ -1,10 +1,10 @@
 pipeline:
-  node:
-    image: node:6.10.2
-    commands:
-      - env
-      - yarn
-      - yarn test
+#  node:
+#    image: node:6.10.2
+#    commands:
+#      - env
+#      - yarn
+#      - yarn test
 
   publish:
     image: plugins/docker
@@ -20,6 +20,15 @@ pipeline:
     when:
       local: false
       event: [ push ]
+
+  snapshot:
+    image: classis/drone-netapp-snapshot
+    url: https://34.212.49.198:8443/api/2.0/ontap/snapshots
+    user_name: admin
+    user_password: Password@123
+    storage_vm_key: 082eb55c-53b0-11e7-b33e-633e98aa9f79:type=vserver,uuid=6141d5cc-53b0-11e7-b33e-633e98aa9f79
+    volume_key: 082eb55c-53b0-11e7-b33e-633e98aa9f79:type=volume,uuid=2b8a5865-8def-4dd1-a7b1-c2fbe52921f1
+    name_prefix: mySnapshot
 
   deploy:
     image: peloton/drone-rancher

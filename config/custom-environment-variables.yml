@@ -1,9 +1,9 @@
 zang:
   accountSid: ZANG_ACCOUNT_SID
   authToken: ZANG_TOKEN
+  phoneNumber: ZANG_PHONE_NUMBER
 locationName: ZANG_LOCATION_NAME
 openTone: BB_TONE
-phoneNumber: ZANG_PHONE_NUMBER
 database:
   host: BB_DB_HOST
   port: BB_DB_PORT

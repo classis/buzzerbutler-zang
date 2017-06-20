@@ -1,11 +1,13 @@
 port: 9006
 zang:
-  accountSid: sidthing
-  authToken: blahblah
+  accountSid: AC07889084e4c8a1a50dfe4d93ac0ddb79
+  authToken: 188ee37b92544e658e39cdf2db86dbc7
+  phoneNumber: +19892560442
 locationName: 'super duper 7 a'
 database:
-  host: mongo://localhost
+  host: mongodb://127.0.0.1
   port: 27017
   name: butler
 openTone: 9
 phoneNumber: '+5555555555'
+

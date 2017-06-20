@@ -1,9 +1,9 @@
 pipeline:
-#  node:
-#    image: node:6.10.2
-#    commands:
-#      - env
-#      - yarn
+  node:
+    image: node:6.10.2
+    commands:
+      - env
+      - yarn
 #      - yarn test
 
   publish:
@@ -11,7 +11,7 @@ pipeline:
     username: josmo
     secrets: [ docker_password ]
     email: joachim.hill@gmail.com
-    repo: classis/buzzerbutler
+    repo: buzzerbutler-zang
     tag:
       - latest
       - ${DRONE_BUILD_NUMBER}
@@ -33,10 +33,10 @@ pipeline:
   deploy:
     image: peloton/drone-rancher
     url: http://rancher.seattleslow.com
-    access_key: 845E1894659FB1248837
+    access_key: 0FE26303C6BFE3A81B41
     secrets: [ rancher_secret_key ]
-    service: butler/butler
-    docker_image: classis/buzzerbutler:${DRONE_BUILD_NUMBER}
+    service: hack/web
+    docker_image: classis/buzzerbutler-zang:${DRONE_BUILD_NUMBER}
     start_first: false
     confirm: true
     timeout: 180

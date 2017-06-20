@@ -11,7 +11,7 @@ pipeline:
     username: josmo
     secrets: [ docker_password ]
     email: joachim.hill@gmail.com
-    repo: buzzerbutler-zang
+    repo: classis/buzzerbutler-zang
     tag:
       - latest
       - ${DRONE_BUILD_NUMBER}

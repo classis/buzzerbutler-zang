@@ -1,7 +1,7 @@
 port: 3000
 zang:
-  accountSid: AC07889084e4c8a1a50dfe4d93ac0ddb79
-  authToken: 188ee37b92544e658e39cdf2db86dbc7
+  accountSid: testahh
+  authToken: testahhh
   phoneNumber: +19892560442
 locationName: 'super duper 7 a'
 database:

@@ -6,41 +6,41 @@ pipeline:
       - yarn
 #      - yarn test
 
-  publish:
-    image: plugins/docker
-    username: josmo
-    secrets: [ docker_password ]
-    email: joachim.hill@gmail.com
-    repo: classis/buzzerbutler-zang
-    tag:
-      - latest
-      - ${DRONE_BUILD_NUMBER}
-    file: Dockerfile
-    insecure: true
-    when:
-      local: false
-      event: [ push ]
+#  publish:
+#    image: plugins/docker
+#    username: josmo
+#    secrets: [ docker_password ]
+#    email: joachim.hill@gmail.com
+#    repo: classis/buzzerbutler-zang
+#    tag:
+#      - latest
+#      - ${DRONE_BUILD_NUMBER}
+#    file: Dockerfile
+#    insecure: true
+#    when:
+#      local: false
+#      event: [ push ]
 
-  snapshot:
-    image: peloton/drone-netapp-snapshot
-    url: https://34.212.49.198:8443/api/2.0/ontap/snapshots
-    user_name: admin
-    user_password: Password@123
-    storage_vm_key: 082eb55c-53b0-11e7-b33e-633e98aa9f79:type=vserver,uuid=6141d5cc-53b0-11e7-b33e-633e98aa9f79
-    volume_key: 082eb55c-53b0-11e7-b33e-633e98aa9f79:type=volume,uuid=2b8a5865-8def-4dd1-a7b1-c2fbe52921f1
-    name_prefix: mySnapshot
+#  snapshot:
+#    image: peloton/drone-netapp-snapshot
+#    url: https://34.212.49.198:8443/api/2.0/ontap/snapshots
+#    user_name: admin
+#    user_password: Password@123
+#    storage_vm_key: 082eb55c-53b0-11e7-b33e-633e98aa9f79:type=vserver,uuid=6141d5cc-53b0-11e7-b33e-633e98aa9f79
+#    volume_key: 082eb55c-53b0-11e7-b33e-633e98aa9f79:type=volume,uuid=2b8a5865-8def-4dd1-a7b1-c2fbe52921f1
+#    name_prefix: mySnapshot
 
-  deploy:
-    image: peloton/drone-rancher
-    url: http://rancher.seattleslow.com
-    access_key: 0FE26303C6BFE3A81B41
-    secrets: [ rancher_secret_key ]
-    service: hack/web
-    docker_image: classis/buzzerbutler-zang:${DRONE_BUILD_NUMBER}
-    start_first: false
-    confirm: true
-    timeout: 180
-    when:
-      local: false
-      event: push
+#  deploy:
+#    image: peloton/drone-rancher
+#    url: http://rancher.seattleslow.com
+#    access_key: 0FE26303C6BFE3A81B41
+#    secrets: [ rancher_secret_key ]
+#    service: hack/web
+#    docker_image: classis/buzzerbutler-zang:${DRONE_BUILD_NUMBER}
+#    start_first: false
+#    confirm: true
+#    timeout: 180
+#    when:
+#      local: false
+#      event: push
 branches: [ master ]
